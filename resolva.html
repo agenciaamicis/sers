@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+<script>
+  window.googlePixelId = "";
+  (function() {
+    var a = document.createElement("script");
+    a.async = true;
+    a.defer = true;
+    a.src = "../../cdn.utmify.com.br/scripts/pixel/pixel-google.js";
+    document.head.appendChild(a);
+  })();
+</script>
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Validação</title>
+<style>
+  :root{
+    --bg:#ffe6f1;
+    --primary:#ec0978;
+    --primary-hover:#c30761;
+    --ok:#16a34a;
+    --ring: rgba(236,9,120,0.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;background:var(--bg);color:#111}
+  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:22px 22px 16px}
+  .steps{display:flex;gap:18px;justify-content:center;margin-bottom:10px}
+  .step{display:flex;align-items:center;gap:6px;font-size:12px;color:#555}
+  .bullet{width:22px;height:22px;border-radius:50%;border:2px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .step.active .bullet{border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 4px var(--ring)}
+  .step.done .bullet{background:var(--ok);border-color:var(--ok);color:#fff}
+  .title{font-size:22px;margin:8px 0 4px 0}
+  .sub{font-size:14px;color:#555;margin:0 0 16px}
+  .btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:var(--primary);transition:.2s;animation:pulse 1.5s infinite;cursor:pointer}
+  .btn:hover{background:var(--primary-hover)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.92}}
+  .field{margin:14px 0}
+  input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px}
+  input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--ring);outline:none}
+  .hidden{display:none}
+  .error{color:#991b1b;background:#fee2e2;border:1px solid #fecaca;padding:8px;border-radius:8px;margin-top:10px;font-size:13px}
+  .trust{margin-top:14px;text-align:center;font-size:12px;color:#444}
+
+  /* slider captcha */
+  .slider-container{background:#f3f4f6;border-radius:999px;position:relative;height:46px;overflow:hidden;border:1px solid #e5e7eb}
+  .slider-btn{position:absolute;left:0;top:0;width:46px;height:46px;background:var(--primary);color:#fff;border-radius:999px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .2s}
+  .slider-text{position:absolute;left:0;top:0;width:100%;height:46px;display:flex;align-items:center;justify-content:center;color:#555;font-size:14px;pointer-events:none}
+  .slider-container.success{background:#dcfce7;border:1px solid #bbf7d0}
+  .slider-container.success .slider-text{color:#14532d}
+  /* touch hint */
+  .slider-btn{ touch-action: none; }
+  .slider-container{ touch-action: pan-y; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <!-- stepper -->
+    <div class="steps">
+      <div class="step active" id="s1"><div class="bullet">1</div> Início</div>
+      <div class="step" id="s2"><div class="bullet">2</div> Captcha</div>
+      <div class="step" id="s3"><div class="bullet">3</div> ID</div>
+    </div>
+
+    <!-- Etapa 1 -->
+    <section id="step1">
+      <h2 class="title">Confirmação de Segurança</h2>
+      <p class="sub">Clique no botão abaixo para iniciar a verificação.</p>
+      <button class="btn" id="btnStart">RESOLVER</button>
+    </section>
+
+    <!-- Etapa 2: Slider captcha -->
+    <section id="step2" class="hidden" aria-hidden="true">
+      <h2 class="title">Verificação</h2>
+      <p class="sub">Arraste o botão até o fim da barra para provar que você não é um robô.</p>
+      <div class="slider-container" id="slider">
+        <div class="slider-btn" id="sliderBtn" aria-label="Arraste para verificar">&#x27A4;</div>
+        <div class="slider-text" id="sliderText">Arraste para verificar</div>
+      </div>
+      <div class="error hidden" id="sliderErr">Tente novamente.</div>
+    </section>
+
+    <!-- Etapa 3 -->
+    <section id="step3" class="hidden" aria-hidden="true">
+      <h2 class="title">Identificação</h2>
+      <p class="sub">Informe seu nome para concluir.</p>
+      <div class="field">
+        <input type="text" id="userName" placeholder="Digite seu nome"/>
+      </div>
+      <button class="btn" id="btnSend">Enviar</button>
+      <div class="error hidden" id="err3">Por favor, digite seu nome.</div>
+    </section>
+
+    <div class="trust">🔒 Conexão segura • Proteção de dados</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  function setStep(n){
+    ['s1','s2','s3'].forEach((id,i)=>{
+      $(id).classList.toggle('active', i===n-1);
+      $(id).classList.toggle('done', i<n-1);
+    });
+    ['step1','step2','step3'].forEach((id,i)=>{
+      const on = (i===n-1);
+      const el = $(id);
+      el.classList.toggle('hidden', !on);
+      el.setAttribute('aria-hidden', String(!on));
+    });
+  }
+
+  // Step1 -> Step2
+  const btnStart = $('btnStart');
+  if(btnStart){
+    btnStart.addEventListener('click', () => setStep(2));
+  }
+
+  // ===== Slider captcha (Desktop + Mobile) =====
+  const slider = $('slider'), btn = $('sliderBtn'), text = $('sliderText');
+
+  let isDown=false, startX=0, pos=0, max=0;
+
+  function setLeft(px){
+    pos = Math.max(0, Math.min(max, px));
+    btn.style.left = pos + 'px';
+    if (pos >= max - 2) success();
+  }
+
+  function success(){
+    isDown=false;
+    slider.classList.add('success');
+    text.textContent = 'Verificado ✔';
+    btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--ok') || '#16a34a';
+    setTimeout(()=>setStep(3), 600);
+  }
+
+  function startDrag(clientX, pointerId){
+    max = slider.offsetWidth - btn.offsetWidth;
+    isDown = true;
+    startX = clientX - pos;
+    const err = $('sliderErr'); if(err) err.classList.add('hidden');
+    if(btn.setPointerCapture && pointerId!==undefined) btn.setPointerCapture(pointerId);
+  }
+
+  function moveDrag(clientX, e){
+    if(!isDown) return;
+    if(e && e.cancelable) e.preventDefault();
+    setLeft(clientX - startX);
+  }
+
+  function endDrag(pointerId){
+    if(!isDown) return;
+    isDown=false;
+    if(btn.releasePointerCapture && pointerId!==undefined) btn.releasePointerCapture(pointerId);
+    if(pos < max - 2){
+      // reset suave
+      btn.style.transition='left .25s';
+      btn.style.left='0px';
+      setTimeout(()=>{ btn.style.transition=''; pos=0; }, 260);
+      const err = $('sliderErr'); if(err) err.classList.remove('hidden');
+    }
+  }
+
+  // Pointer Events se disponíveis
+  if('onpointerdown' in window){
+    btn.addEventListener('pointerdown', e => startDrag(e.clientX, e.pointerId), {passive:true});
+    window.addEventListener('pointermove', e => moveDrag(e.clientX, e), {passive:false});
+    window.addEventListener('pointerup',   e => endDrag(e.pointerId));
+  } else {
+    // Fallback p/ iOS antigos e navegadores legados
+    btn.addEventListener('touchstart', e => startDrag(e.touches[0].clientX), {passive:true});
+    window.addEventListener('touchmove',  e => moveDrag(e.touches[0].clientX, e), {passive:false});
+    window.addEventListener('touchend',   () => endDrag());
+
+    btn.addEventListener('mousedown', e => startDrag(e.clientX));
+    window.addEventListener('mousemove', e => moveDrag(e.clientX, e));
+    window.addEventListener('mouseup',   () => endDrag());
+  }
+
+  // ===== Step3 send =====
+  const btnSend = $('btnSend');
+  if(btnSend){
+    btnSend.addEventListener('click', () => {
+      const name = $('userName').value.trim();
+      $('err3').classList.add('hidden');
+      if(!name){ $('err3').classList.remove('hidden'); return; }
+      // redireciona
+      window.location.href = 'https://feirao2025tech.online/funil/inicio/';
+    });
+  }
+
+  // ====== UTMify multi-IDs (preservado) ======
+  })();
+</script>
+
+<script
+    src="../../cdn.utmify.com.br/scripts/utms/latest.js"
+    data-utmify-prevent-xcod-sck
+    data-utmify-prevent-subids
+    async
+    defer
+></script>
+
+<script defer src="../../static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"3c8fab45df9849338b67685cf497d395","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
